@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nhiệm vụ lấy mã</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #1c1c1e;
+      --card-inner: #2c2c2e;
+      --text: #ffffff;
+      --subtext: #8e8e93;
+      --border: #38383a;
+      --accent: #ffffff;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+    .ios-card { background: var(--card); max-width: 440px; width: 100%; padding: 28px 24px; border-radius: 32px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+    .ios-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 24px; }
+    .ios-step { background: var(--card-inner); padding: 16px; border-radius: 20px; margin-bottom: 12px; font-size: 14px; color: var(--subtext); border: 1px solid rgba(255,255,255,0.05); }
+    .ios-step b { color: var(--text); }
+    .keyword-pill { background: #000000; color: #ffffff; padding: 12px; border-radius: 14px; text-align: center; font-weight: 700; font-size: 16px; margin-top: 8px; border: 1px dashed var(--border); letter-spacing: 0.5px; }
+    .input-group { margin-top: 24px; }
+    .ios-input { width: 100%; padding: 16px; background: var(--card-inner); border: 1px solid var(--border); border-radius: 18px; color: var(--text); font-size: 15px; outline: none; margin-bottom: 12px; text-align: center; transition: border 0.2s; }
+    .ios-input:focus { border-color: var(--accent); }
+    .ios-btn { width: 100%; padding: 16px; background: var(--accent); color: #000000; border: none; border-radius: 18px; font-weight: 600; font-size: 16px; cursor: pointer; transition: opacity 0.2s; }
+    .ios-btn:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<div class="ios-card">
+  <div class="ios-title">Nhiệm Vụ Tra Cứu</div>
+  
+  <div class="ios-step">
+    <b>Bước 1:</b> Mở tab mới và truy cập <b>Google.com</b>
+  </div>
+
+  <div class="ios-step">
+    <b>Bước 2:</b> Tìm kiếm chính xác từ khóa:
+    <div class="keyword-pill">digitalsmod shop</div>
+  </div>
+
+  <div class="ios-step">
+    <b>Bước 3:</b> Chọn trang web thuộc hệ thống và cuộn xuống cuối trang để lấy mã.
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="userInputCode" class="ios-input" placeholder="Nhập mã xác nhận tại đây">
+    <button class="ios-btn" id="btnVerify" onclick="verifyTaskCode()">Xác Nhận</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
+    authDomain: "quocdat-396fe.firebaseapp.com",
+    databaseURL: "https://quocdat-396fe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "quocdat-396fe",
+    storageBucket: "quocdat-396fe.firebasestorage.app",
+    messagingSenderId: "685476439350",
+    appId: "1:685476439350:web:949054ecba7f0a0c383f97"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  async function getUserIPKey() {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      return data.ip.replace(/[\.\:]/g, '_');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  window.verifyTaskCode = async function() {
+    const code = document.getElementById('userInputCode').value.trim();
+    const btn = document.getElementById('btnVerify');
+    
+    if (!code) return alert("Vui lòng nhập mã xác nhận!");
+
+    btn.disabled = true;
+    btn.innerText = "Đang kiểm tra...";
+
+    const ipKey = await getUserIPKey();
+    if (!ipKey) {
+      alert("Không thể xác định IP thiết bị. Vui lòng thử lại!");
+      btn.disabled = false;
+      btn.innerText = "Xác Nhận";
+      return;
+    }
+
+    const taskRef = ref(db, 'missions/' + ipKey);
+    try {
+      const snapshot = await get(taskRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.code === code) {
+          alert("🎉 Xác nhận nhiệm vụ thành công!");
+          await remove(taskRef); // Xóa session sau khi hoàn thành
+          document.getElementById('userInputCode').value = '';
+        } else {
+          alert("❌ Mã xác nhận không chính xác!");
+        }
+      } else {
+        alert("❌ IP của bạn chưa hoàn thành nhiệm vụ lấy mã!");
+      }
+    } catch (err) {
+      alert("Lỗi kết nối CSDL!");
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "Xác Nhận";
+    }
+  };
+</script>
+
+</body>
+</html>
